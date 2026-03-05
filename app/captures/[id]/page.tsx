@@ -56,7 +56,7 @@ export default function CaptureDetailPage() {
         const me = await meService.getMyInfo();
         const orgIdToUse = me.member.org.id;
         if (typeof window !== 'undefined') {
-          localStorage.setItem('orgId', orgIdToUse);
+          // localStorage.setItem('orgId', orgIdToUse);
           localStorage.setItem('memberData', JSON.stringify(me.member));
         }
         setOrgId(orgIdToUse);

@@ -21,19 +21,7 @@ import { ChevronLeft, Check, Archive, LogOut, ChevronRight, Upload, Camera } fro
 import React from 'react';
 import { showErrorToast, showSuccessToast } from '@/lib/toast';
 
-function normalizeOrgId(raw: string | null): string | null {
-  if (!raw) return null;
-  const trimmed = raw.trim();
-  if (/^[a-f0-9]{12}$/i.test(trimmed)) return trimmed;
-  if (/^[a-f0-9]{24}$/i.test(trimmed)) return trimmed.slice(-12);
-  const match = trimmed.match(/\/orgs\/([a-f0-9]{12,24})/i);
-  if (match?.[1]) {
-    const candidate = match[1];
-    if (/^[a-f0-9]{12}$/i.test(candidate)) return candidate;
-    if (/^[a-f0-9]{24}$/i.test(candidate)) return candidate.slice(-12);
-  }
-  return null;
-}
+
 
 export default function ScanPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -64,7 +52,6 @@ export default function ScanPage() {
     const fetchUser = async () => {
       try {
         const storedOrgIdRaw = typeof window !== 'undefined' ? localStorage.getItem('orgId') : null;
-        const storedOrgId = normalizeOrgId(storedOrgIdRaw);
         const storedMember = typeof window !== 'undefined' ? localStorage.getItem('memberData') : null;
         const storedWorkId = typeof window !== 'undefined' ? localStorage.getItem('workId') : null;
 
@@ -76,23 +63,21 @@ export default function ScanPage() {
             // ignore parse errors
           }
         }
-        if (storedOrgId) {
-          setOrgId(storedOrgId);
+        if (storedOrgIdRaw) {
+          setOrgId(storedOrgIdRaw);
         } else if (storedOrgIdRaw) {
           localStorage.removeItem('orgId');
         }
-        if (storedOrgId && storedMember && storedWorkId) return;
+        if (storedOrgIdRaw && storedMember && storedWorkId) return;
 
         const me = await meService.getMyInfo();
         setUser({ name: me.member.name, email: me.member.email });
-        const orgIdToUse = storedOrgId || normalizeOrgId(me.member.org.id) || me.member.org.id;
         const workIdToUse = me.myEngagingWork?.id || storedWorkId || null;
         if (typeof window !== 'undefined') {
-          localStorage.setItem('orgId', orgIdToUse);
           localStorage.setItem('memberData', JSON.stringify(me.member));
           if (workIdToUse) localStorage.setItem('workId', workIdToUse);
         }
-        setOrgId(orgIdToUse);
+        setOrgId( me.member.org.id);
       } catch (err) {
         setOrgId(null); setUser(null);
       }
@@ -153,9 +138,8 @@ export default function ScanPage() {
 
   const handleUpload = async () => {
     const orgIdRaw = typeof window !== 'undefined' ? localStorage.getItem('orgId') : null;
-    const orgId = normalizeOrgId(orgIdRaw);
     let workId = typeof window !== 'undefined' ? localStorage.getItem('workId') : null;
-    if (!orgId) {
+    if (!orgIdRaw) {
       if (typeof window !== 'undefined') localStorage.removeItem('orgId');
       showErrorToast('Organization ID is invalid or missing. Please refresh.');
       return;
@@ -181,7 +165,7 @@ export default function ScanPage() {
       if (uploadFile) { imageBlob = uploadFile; fileName = uploadFile.name; }
       else { imageBlob = await (await fetch(capturedImage!)).blob(); }
 
-      const res = await captureService.scanCard(orgId, imageBlob, workId || undefined);
+      const res = await captureService.scanCard(orgIdRaw, imageBlob, workId || undefined);
       if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
 
       const data = await res.json();
@@ -236,43 +220,7 @@ export default function ScanPage() {
                 </Text>
               </VStack>
 
-              {/* User menu */}
-              <Box minW="120px" display="flex" justifyContent="flex-end">
-                {/* {user ? (
-                  <Box position="relative">
-                    <Button
-                      onClick={() => setShowUserMenu(!showUserMenu)}
-                      className="flex items-center gap-2 bg-navy-950 hover:bg-navy-800 border border-white/10 px-2.5 py-1.5 rounded-2xl transition-all shadow-lg"
-                    >
-                      <Box className="w-7 h-7 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                        <Text className="text-[10px] font-black text-navy-950">
-                          {user.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U'}
-                        </Text>
-                      </Box>
-                      <Icon as={ChevronRight} boxSize={3} className={`text-white/50 transition-transform ${showUserMenu ? 'rotate-90' : ''}`} />
-                    </Button>
-                    {showUserMenu && (
-                      <Box position="absolute" top="calc(100% + 8px)" right={0}
-                        className="bg-white rounded-2xl shadow-2xl border border-navy-100/40 p-2 min-w-[200px] z-[200]"
-                      >
-                        <VStack gap={1} align="stretch">
-                          <Box className="px-4 py-3 border-b border-navy-50">
-                            <Text className="text-[9px] font-black text-navy-300 uppercase tracking-widest mb-0.5">Authenticated As</Text>
-                            <Text className="text-sm font-black text-navy-950 truncate">{user.name}</Text>
-                          </Box>
-                          <Button onClick={handleSignOut} className="flex items-center justify-start gap-3 w-full px-4 py-2.5 hover:bg-rose-50 text-rose-500 rounded-xl" variant="ghost">
-                            <Icon as={LogOut} boxSize={3.5} />
-                            <Text className="text-xs font-black uppercase tracking-widest">Sign Out</Text>
-                          </Button>
-                        </VStack>
-                      </Box>
-                    )}
-                  </Box>
-                ) : (
-                  <Box className="w-8 h-8 rounded-full skeleton" />
-                )} */}
-              </Box>
-            </Flex>
+              </Flex>
           </Box>
 
           {/* Camera / Preview Area */}
