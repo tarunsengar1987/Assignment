@@ -40,9 +40,6 @@ export default function ScanPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  const handleSignOut = async () => {
-    try { await authService.signout(); } finally { router.push('/auth/signin'); }
-  };
 
   useEffect(() => {
     setIsClient(true);

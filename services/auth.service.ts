@@ -54,7 +54,6 @@ export const authService = {
     const csrfToken: string | undefined = getCookie("dev.authorization");
     return apiFetch('/auth/reissue-tokens', {
       method: "POST",
-      credentials: "include",
       headers: {
         "X-REALIZER-CSRF": csrfToken ?? ""
       },
@@ -63,8 +62,13 @@ export const authService = {
 
   // 5. Sign Out (per OpenAPI: DELETE /me/sign-out)
   async signout() {
+        const csrfToken: string | undefined = getCookie("dev.authorization");
+
     return apiFetch('/me/sign-out', {
       method: 'DELETE',
+       headers: {
+      'X-REALIZER-CSRF': csrfToken ?? ""
+    },
     });
   },
 

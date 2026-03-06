@@ -1,6 +1,8 @@
+import { apiFetch } from "./api";
+
 export const isAuthenticated = async (): Promise<boolean> => {
   try {
-    const res = await fetch('/api/me', {
+    const res = await apiFetch('/me', {
       method: 'GET',
       credentials: 'include',
     });

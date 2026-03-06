@@ -1,6 +1,6 @@
 import { API_BASE_URL } from './config';
 import { authService } from '@/services/auth.service';
-import { logout } from './auth';
+import { getCookie, logout } from './auth';
 
 // Module-level promise for token refresh to handle concurrent 401s
 let refreshPromise: Promise<Response> | null = null;
@@ -11,12 +11,19 @@ export async function apiFetch(
 ): Promise<Response> {
   const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  const csrfToken: string | undefined = getCookie("dev.authorization") as string | undefined;
+  const method = (options.method || 'GET').toUpperCase();
 
+  
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string> || {}),
     ...(!isFormData && { 'Content-Type': 'application/json' }),
+
   };
 
+    if (method !== 'GET' && method !== 'OPTIONS' ) {
+    headers["X-REALIZER-CSRF"] = csrfToken ?? "";
+  }
   if (headers['Content-Type'] === 'undefined') {
     delete headers['Content-Type'];
   }
