@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { authService } from '@/services/auth.service';
-import { updateSessionFromIssuance } from '@/lib/auth';
 import {
   Box,
   VStack,
@@ -32,26 +31,27 @@ export default function VerifyOtpPage() {
     e.preventDefault();
     setLoading(true);
 
-    try {
-      const res = await authService.verifyOtp({
-        key,
-        otp,
-        purpose,
-      });
+   try {
+  const res = await authService.verifyOtp({
+    key,
+    otp,
+    purpose,
+  });
 
-      if (res.ok) {
-        const data = await res.json().catch(() => ({}));
-        updateSessionFromIssuance(data);
-        router.push('/captures');
-      } else {
-        const errorData = await res.json().catch(() => ({}));
-        showErrorToast(errorData.message || 'Invalid OTP. Please try again.');
-      }
-    } catch {
-      showErrorToast('Verification failed. Please check your connection.');
-    } finally {
-      setLoading(false);
-    }
+  if (res.ok) {
+    // Server already set HttpOnly cookies
+    await res.json().catch(() => ({}));
+
+    router.push('/captures');
+  } else {
+    const errorData = await res.json().catch(() => ({}));
+    showErrorToast(errorData.message || 'Invalid OTP. Please try again.');
+  }
+} catch {
+  showErrorToast('Verification failed. Please check your connection.');
+} finally {
+  setLoading(false);
+}
   };
 
   return (

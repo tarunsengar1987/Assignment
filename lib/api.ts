@@ -1,6 +1,6 @@
 import { API_BASE_URL } from './config';
 import { authService } from '@/services/auth.service';
-import { logout, updateSessionFromIssuance } from './auth';
+import { logout } from './auth';
 
 // Module-level promise for token refresh to handle concurrent 401s
 let refreshPromise: Promise<Response> | null = null;
@@ -29,38 +29,48 @@ export async function apiFetch(
   });
 
   // Handle 401 Unauthorized for token refresh
-  if (res.status === 401 && !url.includes('/auth/reissue-tokens')) {
-    if (!refreshPromise) {
-      refreshPromise = authService.refreshToken().then(async (refreshRes) => {
-        if (refreshRes.ok) {
-          const data = await refreshRes.json().catch(() => ({}));
-          updateSessionFromIssuance(data, true); // Refresh page after token reissue
-        }
+ if (res.status === 401 && !url.includes('/auth/reissue-tokens')) {
+  if (!refreshPromise) {
+    refreshPromise = authService
+      .refreshToken()
+      .then((refreshRes) => {
         return refreshRes;
-      }).catch(err => {
+      })
+      .catch((err) => {
         throw err;
-      }).finally(() => {
+      })
+      .finally(() => {
         refreshPromise = null;
       });
-    }
+  }
 
-    try {
-      const refreshRes = await refreshPromise
-      if (refreshRes.ok) {
-        return apiFetch(url, options);
-      } else {
-        logout();
-        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth/')) {
-          window.location.href = '/auth/signin';
-        }
-      }
-    } catch (err) {
+  try {
+    const refreshRes = await refreshPromise;
+
+    if (refreshRes.ok) {
+      // retry original request after refresh
+      return apiFetch(url, options);
+    } else {
       logout();
-      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth/')) {
-        window.location.href = '/auth/signin';
+
+      if (
+        typeof window !== "undefined" &&
+        !window.location.pathname.startsWith("/auth/")
+      ) {
+        window.location.href = "/auth/signin";
       }
+    }
+  } catch (err) {
+    logout();
+
+    if (
+      typeof window !== "undefined" &&
+      !window.location.pathname.startsWith("/auth/")
+    ) {
+      window.location.href = "/auth/signin";
     }
   }
+}
 
   return res;
 }
